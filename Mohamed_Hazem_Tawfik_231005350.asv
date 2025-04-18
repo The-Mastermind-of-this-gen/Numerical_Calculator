@@ -1,0 +1,384 @@
+% Clearing previous data
+clear; clc; close all;
+
+% User input for method selection
+disp('There are 4 methods to find a root of non-linear equations numerically');
+disp('Choose one to try:');
+disp('1-Bisection Method');
+disp('2-False Position Method');
+disp('3-Secant Method');
+disp('4-Newton-Raphson Method');
+
+% Storing method number
+Method_number = input('Enter the number of the method: ');
+
+% Input the function as a string
+fprintf("\n");
+user_func = input('Enter the function: ', 's');
+% Convert the string to a function handle
+f = str2func(['@(x)', user_func]);
+
+% Error type selection
+fprintf("\n");
+disp('Stopping Conditions:');
+disp('1 - A number of iterations');
+disp('2 - Decimal places');
+disp('3 - Specified error (Ɛa%)');
+Error = input('Choose the stopping condition: ');
+
+% Input validation
+if Method_number < 1 || Method_number > 4
+    error('Invalid method number. Please enter a number between 1 and 4.');
+end
+if Error < 1 || Error > 3
+    error('Invalid stopping condition. Please choose 1, 2, or 3.');
+end
+
+% Initialize stopping parameters
+itt_no = 0; DP = 0; Ea = 0;
+if Error == 1
+    itt_no = input('Enter the number of iterations: ');
+elseif Error == 2
+    DP = input('Enter the number of decimal places: ');
+elseif Error == 3
+    Ea = input('Enter the specified error (Ɛa%): ');
+end
+
+% Initialize method-specific parameters
+%Bisection and false position
+if Method_number == 1 || Method_number == 2
+    interval = input('Enter the interval as [a, b]: ');
+%Secant   
+elseif Method_number == 3
+    point_1 = input('Enter the first initial point: ');
+    point_2 = input('Enter the second initial point: ');
+%Newton
+elseif Method_number == 4
+    x0 = input('Enter the initial point: ');
+     % Define derivative function
+    syms x
+    df = matlabFunction(diff(f(x))); % Symbolic derivative
+end
+%%
+%Bisection Method
+if Method_number == 1
+    a = interval(1);
+    b = interval(2);
+
+% checking if the equation can be solved by bisection[ f(a)*f(b) must be equal to a negative number ]
+    if f(a) * f(b) > 0
+        error('Sorry this canot be solved using bisection method' );
+    end
+    iter = 1;
+    stop =1;
+ % for iterations   
+    if Error == 1 
+        c_old=0;
+        while iter <= itt_no && stop ==1
+            c = (a + b) / 2;  % Midpoint
+           approx_error = abs((c - c_old) / c) * 100;
+            fprintf('\nIteration %d: c = %f  f(c)= %f ', iter, c,f(c));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%\n', approx_error);
+            end
+            if f(c) == 0
+                root = c;
+                stop =0;
+            elseif f(a) * f(c) < 0
+                b = c;  % Root lies in [a, c]
+            elseif f(b)*f(c)<0
+                a = c;  % Root lies in [c, b]
+            end
+            iter = iter + 1;
+            c_old=c;
+        end
+        root = c;  % Final midpoint
+
+ % for decimal places
+    elseif Error == 2
+     c_old = 0;  
+        while stop
+            c = (a + b) / 2;  % rule
+            approx_error = abs((c - c_old) / c) * 100;
+            fprintf('\nIteration %d: c = %f  f(c)= %f ', iter, c,f(c));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%\n', approx_error);
+            end
+            if abs(c - c_old) < 10^(-DP+1)
+                root = c;
+                stop = 0;
+            elseif f(a) * f(c) < 0
+                b = c;
+            else
+                a = c;
+            end
+            c_old = c;  % Update 
+            iter = iter + 1;
+        end
+%for (Ɛa%) 
+    elseif Error == 3 
+        c=0;
+        while stop==1
+            c_old = c;
+            c = (a + b) / 2;
+            approx_error = abs((c - c_old) / c) * 100;
+            fprintf('\nIteration %d: c = %f  f(c)= %f ', iter, c,f(c));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%\n', approx_error);
+            end
+            if approx_error < Ea
+                root = c;
+                stop=0;
+            elseif f(a) * f(c) < 0
+                b = c;
+            else
+                a = c;
+            end
+            iter = iter + 1;
+        end
+    end
+end
+%%
+%false position method
+if Method_number == 2
+    a = interval(1);
+    b = interval(2);
+
+    % checking if the equation can be solved by false position[ f(a)*f(b) must be equal to a negative number ]
+    if f(a) * f(b) >= 0
+        error('Sorry this canot be solved using false position method' );
+    end
+
+    % Initialize variables
+    iter = 1;      
+    stop = 1;   
+    root = NaN;    
+    c_old = 0;
+
+    % for iterations
+    if Error == 1
+        while iter <= itt_no && stop
+            % the rule
+            c = b - (f(b) * (b - a)) / (f(b) - f(a));
+           approx_error = abs((c - c_old) / c) * 100;
+            fprintf('\nIteration %d: c = %f  f(c)= %f ', iter, c,f(c));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%', approx_error);
+            end
+
+            if f(c) == 0
+                root = c;
+                stop = 0;
+            elseif f(a) * f(c) < 0
+                b = c;  % Root lies in [a, c]
+            elseif f(b)*f(c)<0
+                a = c;  % Root lies in [c, b]
+            end
+            iter = iter + 1;
+            c_old=c;
+        end
+        root = c;  % Final approximation
+
+    % For decimal places
+    elseif Error == 2
+        while stop
+            % rule
+            c = b - (f(b) * (b - a)) / (f(b) - f(a));
+           approx_error = abs((c - c_old) / c) * 100;
+            fprintf('\nIteration %d: c = %f  f(c)= %f ', iter, c,f(c));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%\n', approx_error);
+            end
+
+            if abs(c - c_old) < 10^(-DP)
+                root = c;
+                stop = 0;
+            elseif f(a) * f(c) < 0
+                b = c;
+            elseif f(b) * f(c) < 0
+                a = c;
+            end
+
+            c_old = c;
+            iter = iter + 1;
+        end
+
+    % For stopping criterion: approximate relative error (Ɛa%)
+    elseif Error == 3
+        while stop
+            % Compute the false position
+            c = b - (f(b) * (b - a)) / (f(b) - f(a));
+            approx_error = abs((c - c_old) / c) * 100;  % Approximate relative error
+            fprintf('Iteration %d: c = %f, f(c) = %f, Approx. Error = %f%%\n', iter, c, f(c), approx_error);
+
+            if approx_error < Ea
+                root = c;
+                stop = 0;
+            elseif f(a) * f(c) < 0
+                b = c;
+            else
+                a = c;
+            end
+
+            c_old = c;  % Update the old approximation
+            iter = iter + 1;
+        end
+    end
+end
+%%
+% Secant Method
+if Method_number == 3
+    % Initialize points
+    x0 = point_1;
+    x1 = point_2;
+
+    % Initialize variables
+    iter = 1;       % Iteration counter
+    stop = 1;    % Stopping flag
+    root = NaN;     % Initialize root
+    x2_old = Inf;   % Old approximation for error calculation
+    c_old=0;
+
+    % For iterations
+    if Error == 1
+        while iter <= itt_no && stop==1
+            % rule
+            x2 = x1 - (f(x1) * (x1 - x0)) / (f(x1) - f(x0));
+
+           approx_error = abs((x2 - x1) / x2) * 100;
+            fprintf('\nIteration %d: x2 = %f  f(x2)= %f ', iter, x2,f(x2));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%', approx_error);
+            end
+            if f(x2) == 0  % Exact root found
+                root = x2;
+                stop = 0;
+            end
+
+            % Update
+            x0 = x1;
+            x1 = x2;
+            iter = iter + 1;
+        end
+        root = x2; 
+
+    % For decimal places
+    elseif Error == 2
+        while stop==1
+            % rule
+            x2 = x1 - (f(x1) * (x1 - x0)) / (f(x1) - f(x0));
+
+            approx_error = abs((x2 - x1) / x2) * 100;
+            fprintf('\nIteration %d: x2 = %f  f(x2)= %f ', iter, x2,f(x2));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%', approx_error);
+            end
+            if abs(x2 - x1) < 10^(-DP)
+                root = x2;
+                stop = 0;
+            end
+
+            % Update
+            x0 = x1;
+            x1 = x2;
+            iter = iter + 1;
+        end
+
+    % For (Ɛa%)
+    elseif Error == 3
+        while stop==1
+            % rule
+            x2 = x1 - (f(x1) * (x1 - x0)) / (f(x1) - f(x0));
+            approx_error = abs((x2 - x2_old) / x2) * 100;  % Approximate relative error
+            fprintf('Iteration %d: x2 = %f, f(x2) = %f, Approx. Error = %f%%\n', iter, x2, f(x2), approx_error);
+
+            if approx_error < Ea
+                root = x2;
+                stop = 0;
+            end
+
+            % Update points for the next iteration
+            x2_old = x2;
+            x0 = x1;
+            x1 = x2;
+            iter = iter + 1;
+        end
+    end
+end
+
+
+%%
+%Newton calc.
+%for iterations    
+    if Error == 1 && Method_number==4
+        iter = 1;
+        while iter <= itt_no
+            x1 = x0 - f(x0) / df(x0); %the method rule
+            approx_error = abs((x1 - x0) / x1) * 100;
+            fprintf('\nIteration %d: x2 = %f  f(x2)= %f ', iter, x1,f(x1));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%', approx_error);
+            end
+            iter = iter + 1;
+            x0 = x1;
+        end
+        root=x0;
+%for decimal places        
+    %for decimal places
+    elseif Error == 2&&Method_number==4
+         iter = 0;
+         stop=1;
+            while stop
+                x1 = x0 - f(x0) / df(x0);
+               approx_error = abs((x1 - x0) / x1) * 100;
+            fprintf('\nIteration %d: x2 = %f  f(x2)= %f ', iter, x1,f(x1));
+            if iter>=2
+                fprintf('\tApprox.Error = %f%%', approx_error);
+            end
+                iter = iter + 1;
+                if abs(x1 - x0) < 10^(-DP)
+                    stop =0;
+                end
+                x0 = x1;
+            end
+            root = x0;         
+%for (Ɛa%)        
+    elseif Error == 3&&Method_number==4
+         iter = 0;
+         stop=1;
+        while stop
+            x1 = x0 - f(x0) / df(x0);
+                fprintf('Iteration %d: x = %f\n', iter + 1, x1);
+                iter = iter + 1;
+            if abs((x1 - x0) / x1)*100 < Ea
+                stop=0;
+            end
+            x0 = x1;
+        end
+        root = x0;   
+    end
+%%    
+%printing the root 
+fprintf('\nThe root is approximately: %f\n', root);
+%%
+%plotting
+% Define the function graph
+x_vals = linspace(root - 100, root + 100, 10000);%el xat
+y_vals = f(x_vals);  % el wayat
+
+% Plot the function
+figure;  % Create a new figure
+plot(x_vals, y_vals, 'b-', 'LineWidth', 1.5); % Plot f(x) as a blue line
+hold on;
+
+% Highlight the root on the plot
+plot(root, f(root), 'ro', 'MarkerSize', 8, 'MarkerFaceColor','b' ); % blue dot for root
+
+% Add labels and title
+xlabel('x');
+ylabel('f(x)');
+title('Created by Mohamed Hazem Tawfik 231005350');
+grid on;
+
+% Add legend
+legend('f(x)', 'Root');
